@@ -6,7 +6,7 @@ This project is an Express-based backend API designed for AWS purposes. It serve
 
 ## Project Structure
 
-- `src/server.js`: The main server file that sets up the Express server and defines the API endpoints.
+- `index.js`: The main server file that sets up the Express server and defines the API endpoints.
 - `package.json`: Configuration file for npm, listing dependencies and scripts for the project.
 - `Dockerfile`: Instructions for building the Docker image for the application.
 - `README.md`: Documentation for the project.
