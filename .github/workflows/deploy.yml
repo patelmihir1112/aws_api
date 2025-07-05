@@ -1,0 +1,65 @@
+name: Deploy to ECS Fargate
+
+on:
+  push:
+    branches:
+      - main  # or your deployment branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REPO: ${{ secrets.ECR_REPOSITORY }}
+          ECR_URI: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}"
+        run: |
+          IMAGE_TAG=$(date +%s)
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_URI=$ECR_URI:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Create new task definition revision
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEF_NAME }} \
+          --query 'taskDefinition' > task-def.json
+
+          jq --arg IMAGE "$IMAGE_URI" \
+            '.containerDefinitions[0].image = $IMAGE | {
+              family: .family,
+              containerDefinitions: .containerDefinitions,
+              requiresCompatibilities: .requiresCompatibilities,
+              networkMode: .networkMode,
+              cpu: .cpu,
+              memory: .memory,
+              executionRoleArn: .executionRoleArn,
+              taskRoleArn: .taskRoleArn
+            }' task-def.json > new-task-def.json
+
+      - name: Register new task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://new-task-def.json
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service ${{ secrets.ECS_SERVICE_NAME }} \
+            --task-definition ${{ secrets.ECS_TASK_DEF_NAME }} \
+            --force-new-deployment
