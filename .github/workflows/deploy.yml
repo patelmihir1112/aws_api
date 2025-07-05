@@ -41,8 +41,7 @@ jobs:
         run: |
           aws ecs describe-task-definition \
             --task-definition ${{ secrets.ECS_TASK_DEF_NAME }} \
-            --query 'taskDefinition' \
-            > task-def.json
+            --query 'taskDefinition' > task-def.json
 
       - name: Create new task definition revision
         run: |
@@ -54,8 +53,7 @@ jobs:
               networkMode: .networkMode,
               cpu: .cpu,
               memory: .memory,
-              executionRoleArn: .executionRoleArn,
-              taskRoleArn: .taskRoleArn
+              executionRoleArn: .executionRoleArn
             }' task-def.json > new-task-def.json
 
           aws ecs register-task-definition \
