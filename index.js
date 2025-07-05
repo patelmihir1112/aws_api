@@ -11,6 +11,7 @@ app.use(bodyParser.json());
 app.get('/', (req, res) => {
   res.send('Welcome to the aws API');
 });
+
 app.get('/health', (req, res) => {
   res.send('OK');
 });
