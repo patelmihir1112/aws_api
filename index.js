@@ -9,7 +9,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
-  res.send('Welcome to the aws API cicd');
+  res.send('Welcome to the aws API check after deleting');
 });
 
 app.get('/health', (req, res) => {
